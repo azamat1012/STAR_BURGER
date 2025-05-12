@@ -1,5 +1,14 @@
 from django.db import models
+from django.db.models import F, Sum, DecimalField
 from django.core.validators import MinValueValidator
+from django.contrib.auth.models import User
+from django.utils import timezone
+
+from phonenumber_field.modelfields import PhoneNumberField
+
+
+class User(models.Model):
+    name = models.CharField(max_length=200)
 
 
 class Restaurant(models.Model):
@@ -121,3 +130,86 @@ class RestaurantMenuItem(models.Model):
 
     def __str__(self):
         return f"{self.restaurant.name} - {self.product.name}"
+
+
+class OrderQuerySet(models.QuerySet):
+    def total_price(self):
+        return self.annotate(
+            total=Sum(
+                F('items__quantity') * F('items__fixed_price'),
+                output_field=DecimalField()
+            )
+        )
+
+
+class Order(models.Model):
+    STATUS_CHOICES = [
+        ('new', 'Необработанный'),
+        ('processing', 'В обработке'),
+        ('preparing', 'Готовится'),
+        ('delivering', 'Доставляется'),
+        ('completed', 'Завершен'),
+
+    ]
+    PAYMENT_CHOICES = [
+        ('cash', 'Наличностью'),
+        ('card', 'Электронно'),
+    ]
+    status = models.CharField('Статус', max_length=20,
+                              choices=STATUS_CHOICES, default='new')
+    firstname = models.CharField(verbose_name="Имя", max_length=50, blank=True)
+    lastname = models.CharField(
+        verbose_name="Фамилия", max_length=50, blank=True)
+    address = models.CharField(
+        verbose_name="Адрес", max_length=100, blank=True)
+    phonenumber = PhoneNumberField(
+        verbose_name="Мобильный номер", null=True, blank=False, unique=True, db_index=True)
+    comment = models.TextField("Комментарий", max_length=250, blank=True)
+    registered_at = models.DateTimeField(default=timezone.now, db_index=True)
+    called_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    delivered_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    payment = models.CharField(
+        "Оплата", choices=PAYMENT_CHOICES, max_length=20, default="cash")
+
+    objects = OrderQuerySet.as_manager()
+
+    class Meta:
+        verbose_name = 'заказ'
+        verbose_name_plural = 'заказы'
+
+    def __str__(self):
+        return f"{self.firstname} {self.lastname} {self.address}"
+
+
+class OrderItem(models.Model):
+
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name='items', verbose_name="заказ"
+    )
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="products", verbose_name="продукт"
+    )
+
+    quantity = models.PositiveIntegerField(
+        verbose_name="количество", validators=[MinValueValidator(1)]
+    )
+    fixed_price = models.DecimalField(
+        "Цена",
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True
+
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.fixed_price:
+            self.fixed_price = self.product.price
+        super().save(*args, **kwargs)
+
+        verbose_name = "Элементы заказа"
+        verbose_name_plural = "Элементы заказов"
+
+    def __str__(self):
+        return f"{self.quantity} - {self.product.name}"

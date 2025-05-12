@@ -2,16 +2,50 @@ from django.contrib import admin
 from django.shortcuts import reverse
 from django.templatetags.static import static
 from django.utils.html import format_html
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.http import HttpResponseRedirect
 
-from .models import Product
-from .models import ProductCategory
-from .models import Restaurant
-from .models import RestaurantMenuItem
+from .models import Product, RestaurantMenuItem, Restaurant, ProductCategory, \
+    Order, OrderItem
 
 
 class RestaurantMenuItemInline(admin.TabularInline):
     model = RestaurantMenuItem
     extra = 0
+
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    extra = 0
+    fields = ('product', 'quantity',  'total')
+    readonly_fields = ('total',)
+
+    def total(self, obj):
+        return (obj.quantity or 0) * (obj.fixed_price or 0)
+    total.short_description = 'Сумма'
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    inlines = [OrderItemInline]
+    list_display = ('firstname', 'lastname','status',
+                    'address')
+    list_filter = ('phonenumber','status',)
+    list_editable = ('status',)
+    search_fields = ('firstname', 'phonenumber', 'address','status')
+    
+
+    def response_change(self, request, obj):
+        response = super().response_change(request, obj)
+        next_url = request.GET.get('next')
+        if (not ("_continue" in request.POST or "_addanother" in request.POST) 
+            and next_url 
+            and url_has_allowed_host_and_scheme(
+                url=next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure()
+            )):
+            return HttpResponseRedirect(next_url)
+        return response
 
 
 @admin.register(Restaurant)
