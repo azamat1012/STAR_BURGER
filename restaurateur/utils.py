@@ -8,42 +8,69 @@ import requests
 from requests.exceptions import RequestException
 
 from foodcartapp.models import RestaurantMenuItem, Restaurant
-from distances.models import Coordinate
+from places.models import Place
 
 logger = logging.getLogger(__name__)
 
 
-def get_or_update_coordinates(address, apikey):
-    """Получает или обновляет координаты для адреса"""
+# def get_or_update_address(address, apikey):
+#     """Получает или обновляет координаты для адреса"""
+#     try:
+#         coord, created = Place.objects.get_or_create(address=address)
+#         if created:
+#             logger.info(
+#                 f"Создана новая запись координат для адреса: {address}")
+#             coords = fetch_coordinates(apikey, address)
+#             if coords:
+#                 coord.latitude, coord.longitude = coords
+#                 coord.geocode_date = timezone.now()
+#                 coord.save()
+#                 logger.info(
+#                     f"Обновлены координаты для нового адреса: {address}")
+#                 return coords
+#             elif coord.latitude and coord.longitude:
+#                 logger.debug(
+#                     f"Используются существующие координаты для адреса: {address}")
+#                 return (coord.latitude, coord.longitude)
 
+#         return (coord.latitude, coord.longitude) if coord.latitude and coord.longitude else None
+#     except Exception as e:
+#         logger.error(
+#             f"Ошибка при получении координат для адреса {address}: {str(e)}")
+#         return None
+
+
+def get_or_update_address(address, apikey):
+    """Получает или обновляет координаты для адреса"""
     try:
-        coord, created = Coordinate.objects.get_or_create(address=address)
+        coord, created = Place.objects.get_or_create(address=address)
         if created:
             logger.info(
-                f"Создана новая запись координат для адреса: {address}")
+                f"Created new coordinates entry for address: {address}")
             coords = fetch_coordinates(apikey, address)
             if coords:
                 coord.latitude, coord.longitude = coords
                 coord.geocode_date = timezone.now()
                 coord.save()
-                logger.info(
-                    f"Обновлены координаты для нового адреса: {address}")
-                return coords
-            elif coord.latitude and coord.longitude:
+                logger.info(f"Updated coordinates for new address: {address}")
                 logger.debug(
-                    f"Используются существующие координаты для адреса: {address}")
-                return (coord.latitude, coord.longitude)
+                    f"Fetched coordinates for address {address}: {coords}")
+                return coords
+            else:
+                logger.warning(
+                    f"Failed to fetch coordinates for address {address}")
+        else:
+            logger.debug(f"Using existing coordinates for address: {address}")
 
         return (coord.latitude, coord.longitude) if coord.latitude and coord.longitude else None
     except Exception as e:
         logger.error(
-            f"Ошибка при получении координат для адреса {address}: {str(e)}")
+            f"Error fetching coordinates for address {address}: {str(e)}")
         return None
 
 
 def get_available_restaurants(order):
     """Возвращает доступные рестораны с расстоянием до клиента"""
-
     load_dotenv()
     order_details = order.items.all()
     restaurants = Restaurant.objects.all()
@@ -63,17 +90,19 @@ def get_available_restaurants(order):
         logger.error("Не найден API-ключ Яндекс.Геокодера")
         return
 
-    client_coords = get_or_update_coordinates(order.address, api_key)
+    client_coords = get_or_update_address(order.address, api_key)
     logger.debug(
         f"Адрес клиента: {order.address}, координаты: {client_coords}")
     if not client_coords:
         logger.warning(
             f"Не удалось получить координаты клиента: {order.address}")
         return
+
     restaurant_addresses = restaurants.values_list('address', flat=True)
+
     coord_map = {
         coord.address: (coord.latitude, coord.longitude)
-        for coord in Coordinate.objects.filter(
+        for coord in Place.objects.filter(
             address__in=restaurant_addresses, latitude__isnull=False, longitude__isnull=False
         )
     }
@@ -82,14 +111,17 @@ def get_available_restaurants(order):
     for restaurant in restaurants:
         restaurant_coords = coord_map.get(restaurant.address)
         if not restaurant_coords:
-            restaurant_coords = get_or_update_coordinates(
+            restaurant_coords = get_or_update_address(
                 restaurant.address, api_key)
 
         distance_km = None
         if client_coords and restaurant_coords:
-            distance_km = round(
-                distance.distance(client_coords, restaurant_coords).km, 3
-            )
+            try:
+                distance_km = round(distance.distance(
+                    client_coords, restaurant_coords).km, 3)
+            except ValueError as e:
+                logger.error(f"Error calculating distance: {str(e)}")
+                continue
 
         available_restaurants.append({
             'restaurant': restaurant,

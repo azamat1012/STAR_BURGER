@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class DistancesConfig(AppConfig):
+class PlacesConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'distances'
+    name = 'places'

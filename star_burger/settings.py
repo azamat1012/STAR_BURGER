@@ -13,7 +13,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 
 SECRET_KEY = env('SECRET_KEY')
-DEBUG = env.bool('DEBUG', True)
+DEBUG = env.bool('DEBUG', False)
 
 ALLOWED_HOSTS = env.list(
     'ALLOWED_HOSTS', ['127.0.0.1', 'localhost', '192.168.1.99'])
@@ -30,7 +30,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     "phonenumber_field",
     'rest_framework',
-    'distances.apps.DistancesConfig',
+    'places.apps.PlacesConfig',
 ]
 
 MIDDLEWARE = [

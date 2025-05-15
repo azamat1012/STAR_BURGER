@@ -2,28 +2,25 @@ from django.db import models
 from django.utils import timezone
 
 
-class Coordinate(models.Model):
+class Place(models.Model):
     address = models.CharField(
         'адрес',
         max_length=100,
-        blank=True,
         unique=True
     )
     latitude = models.FloatField(
         'широта',
         null=True,
-        blank=True,
     )
     longitude = models.FloatField(
         'долгота',
         null=True,
-        blank=True,
     )
     geocode_date = models.DateTimeField(
-        "Дата последнего запроса к geocoder", default=timezone.now, db_index=True)
+        "Дата последнего запроса к geocoder", auto_now_add=True, db_index=True)
 
     class Meta:
-        app_label = 'distances'
+        app_label = 'places'
         verbose_name = "локация"
         verbose_name_plural = "локации"
 

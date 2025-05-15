@@ -157,13 +157,13 @@ class Order(models.Model):
     ]
     status = models.CharField('Статус', max_length=20,
                               choices=STATUS_CHOICES, default='new')
-    firstname = models.CharField(verbose_name="Имя", max_length=50, blank=True)
+    firstname = models.CharField(verbose_name="Имя", max_length=50)
     lastname = models.CharField(
-        verbose_name="Фамилия", max_length=50, blank=True)
+        verbose_name="Фамилия", max_length=50)
     address = models.CharField(
-        verbose_name="Адрес", max_length=100, blank=True)
+        verbose_name="Адрес", max_length=100)
     phonenumber = PhoneNumberField(
-        verbose_name="Мобильный номер", null=True, blank=False, unique=True, db_index=True)
+        verbose_name="Мобильный номер", null=True, unique=True, db_index=True)
     comment = models.TextField("Комментарий", max_length=250, blank=True)
     registered_at = models.DateTimeField(default=timezone.now, db_index=True)
     called_at = models.DateTimeField(null=True, blank=True, db_index=True)
@@ -198,8 +198,7 @@ class OrderItem(models.Model):
         max_digits=8,
         decimal_places=2,
         validators=[MinValueValidator(0)],
-        null=True,
-        blank=True
+        null=True
 
     )
 
@@ -208,6 +207,7 @@ class OrderItem(models.Model):
             self.fixed_price = self.product.price
         super().save(*args, **kwargs)
 
+    class Meta:
         verbose_name = "Элементы заказа"
         verbose_name_plural = "Элементы заказов"
 
