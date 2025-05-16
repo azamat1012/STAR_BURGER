@@ -1,6 +1,7 @@
 import logging
 import os
 
+from django.conf import settings
 from phonenumber_field.serializerfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers import parse, is_valid_number, NumberParseException, format_number, PhoneNumberFormat
@@ -19,11 +20,9 @@ class OrderItemSerializer(ModelSerializer):
         read_only = ['fixed_price']
 
     def validate_product(self, value):
-        try:
-            Product.objects.get(id=value.id)
-            return value
-        except Product.DoesNotExist:
-            raise ValidationError(f"Недопустимый первичный ключ '{value.id}'")
+        if not Product.objects.filter(pk=value.pk).exists():
+            raise ValidationError(f"Недопустимый первичный ключ '{value.pk}'")
+        return value
 
     def validate_quantity(self, value):
         if not isinstance(value, int) or value < 1:
@@ -46,16 +45,19 @@ class OrderSerializer(ModelSerializer):
         phonenumber = validated_data.pop('phonenumber')
         address = validated_data.pop('address')
 
-        api_key = os.getenv("YANDEX_GEOCODER_KEY")
+        api_key = getattr(settings, 'YANDEX_GEOCODER_KEY', None)
         if not api_key:
             logger.error("Не найден API-ключ Яндекс.Геокодера")
-        client_address = get_or_update_address(address, api_key)
+            client_address = address
+        else:
+            client_address = get_or_update_address(address, api_key)
 
         order = Order.objects.create(
             phonenumber=phonenumber,
-            address=address,
+            address=client_address,
             **validated_data
         )
+
         order_items = [
             OrderItem(
                 order=order,

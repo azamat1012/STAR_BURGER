@@ -1,7 +1,10 @@
 import os
+
 from datetime import datetime, timedelta
-from django.utils import timezone
 import logging
+
+from django.utils import timezone
+from django.conf import settings
 from dotenv import load_dotenv
 from geopy import distance
 import requests
@@ -85,7 +88,7 @@ def get_available_restaurants(order):
             logger.debug("Нет ресторанов с доступными товарами из заказа")
             return []
 
-    api_key = os.getenv("YANDEX_GEOCODER_KEY")
+    api_key = settings.YANDEX_GEOCODER_KEY
     if not api_key:
         logger.error("Не найден API-ключ Яндекс.Геокодера")
         return

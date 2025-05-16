@@ -165,7 +165,8 @@ class Order(models.Model):
     phonenumber = PhoneNumberField(
         verbose_name="Мобильный номер", null=True, unique=True, db_index=True)
     comment = models.TextField("Комментарий", max_length=250, blank=True)
-    registered_at = models.DateTimeField(default=timezone.now, db_index=True)
+    registered_at = models.DateTimeField(
+        "Дата создания", auto_now_add=True, db_index=True)
     called_at = models.DateTimeField(null=True, blank=True, db_index=True)
     delivered_at = models.DateTimeField(null=True, blank=True, db_index=True)
     payment = models.CharField(
@@ -198,8 +199,8 @@ class OrderItem(models.Model):
         max_digits=8,
         decimal_places=2,
         validators=[MinValueValidator(0)],
-        null=True
-
+        default=0.00,
+        null=False
     )
 
     def save(self, *args, **kwargs):
