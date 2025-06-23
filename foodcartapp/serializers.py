@@ -7,6 +7,7 @@ from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers import parse, is_valid_number, NumberParseException, format_number, PhoneNumberFormat
 from rest_framework.serializers import ModelSerializer, ListField, ValidationError, \
     CharField
+from rest_framework.fields import IntegerField, PrimaryKeyRelatedField
 
 from .models import OrderItem, Product, Order
 from restaurateur.utils import get_or_update_address
@@ -14,21 +15,13 @@ logger = logging.getLogger(__name__)
 
 
 class OrderItemSerializer(ModelSerializer):
+    product = PrimaryKeyRelatedField(queryset=Product.objects.all())
+    quantity = IntegerField(min_value=1)
+    
     class Meta:
         model = OrderItem
         fields = ['product', 'quantity', 'fixed_price']
         read_only = ['fixed_price']
-
-    def validate_product(self, value):
-        if not Product.objects.filter(pk=value.pk).exists():
-            raise ValidationError(f"Недопустимый первичный ключ '{value.pk}'")
-        return value
-
-    def validate_quantity(self, value):
-        if not isinstance(value, int) or value < 1:
-            raise ValidationError(
-                "Количество должно быть целым числом больше 0")
-        return value
 
 
 class OrderSerializer(ModelSerializer):
