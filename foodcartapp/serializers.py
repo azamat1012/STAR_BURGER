@@ -7,7 +7,8 @@ from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers import parse, is_valid_number, NumberParseException, format_number, PhoneNumberFormat
 from rest_framework.serializers import ModelSerializer, ListField, ValidationError, \
     CharField
-from rest_framework.fields import IntegerField, PrimaryKeyRelatedField
+from rest_framework.fields import IntegerField
+from rest_framework.relations import PrimaryKeyRelatedField
 
 from .models import OrderItem, Product, Order
 from restaurateur.utils import get_or_update_address
