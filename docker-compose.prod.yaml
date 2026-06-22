@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  backend:
+    build: .
+    env_file:
+      - .env
+    command: gunicorn star_burger.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - media_data:/app/media
+      - /var/www/frontend:/app/frontend
+    restart: always
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
+  media_data:

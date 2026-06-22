@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:14
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  frontend:
+    image: node:17.6-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: sh -c "npm ci && ./node_modules/.bin/parcel watch bundles-src/index.js --dist-dir bundles --public-url=./"
+    tty: true
+
+  backend:
+    build: .
+    env_file:
+      - .env
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - frontend
+
+volumes:
+  postgres_data:
+  media_data:
