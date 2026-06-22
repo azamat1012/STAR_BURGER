@@ -1,5 +1,5 @@
 # Сайт доставки еды Star Burger
-[LIVE VERSION](https://azamat21x.space/)
+[LIVE VERSION](http://82.148.28.67/)
 
 Это сайт сети ресторанов Star Burger. Здесь можно заказать превосходные бургеры с доставкой на дом.
 
